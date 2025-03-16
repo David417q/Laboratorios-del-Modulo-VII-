@@ -1,0 +1,34 @@
+sudo dnf install -y samba samba-client samba-common
+sudo systemctl enable --now smb nmb
+sudo firewall-cmd --add-service=samba --permanent
+sudo firewall-cmd --reload
+
+sudo mkdir -p /srv/samba_share
+cd /srv/samba_share
+sudo touch Adrian{1..100}.txt
+
+sudo groupadd sambashare
+sudo useradd -M -s /sbin/nologin -G sambashare samba
+sudo passwd samba
+sudo smbpasswd -a samba
+sudo smbpasswd -e samba
+
+
+sudo chmod -R 770 /srv/samba_share
+sudo chown -R samba:sambashare /srv/samba_share
+sudo chcon -t samba_share_t /srv/samba_share
+sudo setsebool -P samba_enable_home_dirs on
+sudo setsebool -P samba_export_all_rw on
+
+sudo nano /etc/samba/smb.conf
+
+[public]
+    path = /srv/samba_share
+    valid users = @sambashare
+    guest ok = no
+    browseable = yes
+    writable  = yes
+    create mask = 0660
+    directory mask = 0770
+
+sudo systemctl restart smb nmb
